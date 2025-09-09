@@ -1,0 +1,86 @@
+1 yedek
+
+# Değişkenler
+$stamp = Get-Date -Format "yyyyMMdd_HHmm"
+$BKDIR = "D:\chirpstack-backup"
+New-Item -ItemType Directory -Force -Path $BKDIR | Out-Null
+
+# 1) DB DUMP (container içinde .dump üret)
+docker compose exec postgres sh -lc "pg_dump -U chirpstack -d chirpstack -Fc -f /tmp/chirpstack_$stamp.dump"
+
+# 2) Host’a kopyala
+docker cp chirpstack-docker-master-postgres-1:/tmp/chirpstack_$stamp.dump "$BKDIR\chirpstack_$stamp.dump"
+
+# 3) Konfig yedeği (toml, mosquitto.conf, compose)
+Copy-Item -Path "D:\chirpstack-docker-master\configuration" -Destination "$BKDIR\config_$stamp" -Recurse
+Copy-Item -Path "D:\chirpstack-docker-master\docker-compose.yml" -Destination "$BKDIR\docker-compose_$stamp.yml"
+
+
+
+2 silme
+
+docker compose down -v --remove-orphans
+
+
+3 kurulum
+
+docker compose up -d
+# Postgres hazır mı diye ufak bekleme istersen:
+Start-Sleep -Seconds 5
+
+
+
+
+
+## 2) Şemayı temizle ve **pg_restore** ile geri yükle
+
+`.dump` dosyan “custom format”, o yüzden `psql -f` **değil**, `pg_restore`:
+
+```powershell
+docker exec -i $PG psql -U $DbUser -d $DbName -c "drop schema if exists public cascade; create schema public;"
+
+docker exec -i $PG pg_restore -U $DbUser -d $DbName `
+  --clean --if-exists --no-owner --role=$DbUser /tmp/restore.dump
+
+```
+
+## bu çalıştıı heee
+
+## 3) Kontrol
+
+```powershell
+docker exec -i $PG psql -U $DbUser -d $DbName -c "\dt"
+
+```
+
+Tablolar listeleniyorsa restore tamamdır.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+4 geri yükleme
+
+# Dump’ı tekrar container içine kopyala
+$Dump = Get-ChildItem "$BKDIR\chirpstack_*.dump" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+docker cp $Dump.FullName chirpstack-docker-master-postgres-1:/tmp/restore.dump
+
+# Şemayı temizleyip pg_restore ile geri al
+docker compose exec -T postgres psql -U chirpstack chirpstack -c "drop schema public cascade; create schema public;"
+docker compose exec -T postgres pg_restore -U chirpstack -d chirpstack -c /tmp/restore.dump
+

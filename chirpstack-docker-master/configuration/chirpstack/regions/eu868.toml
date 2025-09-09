@@ -1,0 +1,18 @@
+[[regions]]
+id=eu868
+description=EU868
+common_name=EU868
+
+[regions.gateway]
+[regions.gateway.backend]
+enabled=mqtt
+
+[regions.gateway.backend.mqtt]
+ topic_prefix = "eu868"
+server = "tcp://mosquitto:9883"   # <— BURASI ÖNEMLİ
+username = "areytech"
+password = "!arEfendim1453Sultanim24"
+qos = 0
+clean_session = false
+client_id = ""
+keep_alive_interval = "30s"
