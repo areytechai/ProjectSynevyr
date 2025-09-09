@@ -1,0 +1,21 @@
+[general]
+# 0=trace,1=debug,2=info,3=warn,4=error
+log_level = 1
+
+[integration.mqtt]
+event_topic_template = "gateway/{{ .GatewayID }}/event/{{ .EventType }}"
+state_topic_template = "gateway/{{ .GatewayID }}/state/{{ .StateType }}"
+command_topic_template = "gateway/{{ .GatewayID }}/command/#"
+max_token_wait = "1s"
+
+# <<< ÖNEMLİ: v4'te sunucular burada >>>
+[integration.mqtt.auth.generic]
+servers = ["tcp://mosquitto:9883"]
+ username="areytech"
+password="!arEfendim1453Sultanim24"
+
+[backend]
+type = "semtech_udp"
+
+[backend.semtech_udp]
+udp_bind = "0.0.0.0:1700"
